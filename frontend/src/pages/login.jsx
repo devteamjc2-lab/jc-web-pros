@@ -41,24 +41,42 @@ const Login = () => {
 
   // 4. Handle Form Submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  e.preventDefault();
 
-    setIsSubmitting(true);
+  if (!validateForm()) return;
 
-    try {
-        
-      console.log("Submitting login credentials to backend...", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1500)); 
-      
-      alert("Login successful!");
-      // Redirect your user here (e.g., useNavigate('/dashboard'))
-    } catch (err) {
-      setErrors({ apiError: "Invalid email or password. Please try again." });
-    } finally {
-      setIsSubmitting(false);
+  setIsSubmitting(true);
+
+  try {
+    const response = await fetch("http://localhost:5000/api/users/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData), // ✅ Send state
+    });
+
+    const data = await response.json();
+
+    console.log("Response:", data);
+
+    if (data.success) {
+      alert("Login Successful");
+    } else {
+      setErrors({
+        apiError: data.message,
+      });
     }
-  };
+  } catch (error) {
+    console.error("Fetch Error:", error);
+
+    setErrors({
+      apiError: "Unable to connect to server.",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="login-container">
