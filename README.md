@@ -1,11 +1,11 @@
-# JC Web Pro Chat
+# JC Web Pros
 
-Simple project scaffold for a Node backend and React frontend in separate folders.
+This repository contains a full-stack project with a Next.js backend and a Vite frontend.
 
 ## Structure
 
-- `backend/` — Node.js Express API server
-- `frontend/` — React app using Vite
+- backend/ — database-connected Next.js app with API routes
+- frontend/ — Vite React frontend
 
 ## Setup
 
@@ -22,7 +22,7 @@ Simple project scaffold for a Node backend and React frontend in separate folder
 3. Start the backend:
    ```bash
    cd ../backend
-   npm run start
+   npm run dev
    ```
 4. Start the frontend:
    ```bash
@@ -30,30 +30,21 @@ Simple project scaffold for a Node backend and React frontend in separate folder
    npm run dev
    ```
 
-The frontend expects the backend API at `http://localhost:4000`.
-
 ## Database
 
-The backend uses MySQL/MariaDB, the same database server shown in phpMyAdmin.
-
-```bash
-cd backend
-cp .env.example .env
-```
-
-Then edit `backend/.env` and set your phpMyAdmin/MySQL credentials:
+The backend uses MySQL. Configure credentials in backend/.env.local or backend/.env:
 
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_mysql_password
-DB_NAME=jc_web_chat
+DB_NAME=jc_web_pros
 ```
-
-The backend creates the database/table automatically when it starts. You can also import `backend/schema.sql` manually in phpMyAdmin.
 
 ## API
 
-- `GET /api/messages` - returns all chat messages
-- `POST /api/messages` - accepts `{ "user": "Name", "text": "Message" }`
+- GET /api/db — returns database records
+- POST /api/db — inserts a new record
+- PUT /api/db — updates a record
+- DELETE /api/db?id=1 — deletes a record
