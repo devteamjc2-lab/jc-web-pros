@@ -13,6 +13,9 @@ const Chat = () => {
   const [groupName, setGroupName] = useState("");
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
+  const [groupSettingsSearch, setGroupSettingsSearch] = useState("");
+  const [groupSettingsError, setGroupSettingsError] = useState("");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,6 +33,29 @@ const Chat = () => {
     selectedConversation?.type === "group" &&
     activeUser &&
     (selectedConversation.created_by === activeUser.id || activeUser.role?.toLowerCase() === "admin");
+
+  const groupSettingsSearchResults = useMemo(() => {
+    if (!selectedConversation) return [];
+    const query = groupSettingsSearch.trim().toLowerCase();
+    return users
+      .filter((user) => !query || user.name.toLowerCase().includes(query))
+      .map((user) => ({
+        ...user,
+        inGroup: selectedConversation.members?.some((member) => member.id === user.id),
+      }));
+  }, [groupSettingsSearch, users, selectedConversation]);
+
+  const openGroupSettings = () => {
+    setIsGroupSettingsOpen(true);
+    setGroupSettingsSearch("");
+    setGroupSettingsError("");
+  };
+
+  const closeGroupSettings = () => {
+    setIsGroupSettingsOpen(false);
+    setGroupSettingsSearch("");
+    setGroupSettingsError("");
+  };
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -110,12 +136,12 @@ const Chat = () => {
     };
 
     loadMessages();
-    socket.emit("join_conversation", { conversationId: selectedConversation.id, userId: currentUser.id });
+    socket.emit("join_conversation", { conversationId: selectedConversation.id, userId: activeUser?.id });
 
     return () => {
       socket.emit("leave_conversation", selectedConversation.id);
     };
-  }, [selectedConversation?.id, currentUser?.id]);
+  }, [selectedConversation?.id, activeUser?.id]);
 
   useEffect(() => {
     const handleReceiveMessage = (data) => {
@@ -303,9 +329,12 @@ const Chat = () => {
       if (data.success) {
         setSelectedConversation(data.conversation);
         setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
+      } else {
+        setGroupSettingsError(data.message);
       }
     } catch (error) {
       console.error("Add member error:", error);
+      setGroupSettingsError("Unable to add member");
     } finally {
       setIsLoading(false);
     }
@@ -327,9 +356,38 @@ const Chat = () => {
       if (data.success) {
         setSelectedConversation(data.conversation);
         setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
+      } else {
+        setGroupSettingsError(data.message);
       }
     } catch (error) {
       console.error("Remove member error:", error);
+      setGroupSettingsError("Unable to remove member");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteGroup = async () => {
+    if (!selectedConversation?.id || !activeUser?.id) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/chats/conversations/${selectedConversation.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminId: activeUser.id }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setConversations((prev) => prev.filter((item) => item.id !== selectedConversation.id));
+        setSelectedConversation(null);
+        setMessages([]);
+        closeGroupSettings();
+      } else {
+        setGroupSettingsError(data.message);
+      }
+    } catch (error) {
+      console.error("Delete group error:", error);
+      setGroupSettingsError("Unable to delete group");
     } finally {
       setIsLoading(false);
     }
@@ -345,7 +403,7 @@ const Chat = () => {
             </div>
             <div className="sidebar-actions">
               <button className="sidebar-icon">🔍</button>
-              {currentUser?.role?.toLowerCase() === "admin" && (
+              {activeUser?.role?.toLowerCase() === "admin" && (
                 <button className="sidebar-icon" onClick={() => setIsGroupModalOpen(true)}>
                   ➕
                 </button>
@@ -416,58 +474,20 @@ const Chat = () => {
               </div>
             </div>
             <div className="header-right">
+              {selectedConversation?.type === "group" && isGroupManager && (
+                <button className="group-settings-icon" onClick={openGroupSettings} title="Group settings">
+                  ⋮
+                </button>
+              )}
               <div className="profile-block">
-                <div className="profile-avatar">{currentUser ? getInitials(currentUser.name) : "U"}</div>
+                <div className="profile-avatar">{activeUser ? getInitials(activeUser.name) : "U"}</div>
                 <div className="profile-info">
-                  <p className="profile-name">{currentUser?.name || "User"}</p>
+                  <p className="profile-name">{activeUser?.name || "User"}</p>
                   <p className="profile-status">{currentUserStatus}</p>
                 </div>
               </div>
             </div>
           </div>
-
-          {selectedConversation?.type === "group" && (
-            <div className="group-panel">
-              <div className="group-row">
-                <div className="group-label">Members:</div>
-                <div className="group-members">
-                  {selectedConversation.members?.map((member) => (
-                    <span key={member.id} className="group-member">
-                      {member.name}
-                      {isGroupManager && member.id !== selectedConversation.created_by && (
-                        <button
-                          type="button"
-                          className="member-remove-btn"
-                          onClick={() => removeGroupMember(member.id)}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              {isGroupManager && (
-                <div className="group-row group-add-row">
-                  <div className="group-label">Add members:</div>
-                  <div className="group-members-add">
-                    {users
-                      .filter((user) => !selectedConversation.members?.some((member) => member.id === user.id))
-                      .map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          className="member-add-btn"
-                          onClick={() => addGroupMember(user.id)}
-                        >
-                          + {user.name}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="chat-body">
             {errors.apiError && <div className="chat-error">{errors.apiError}</div>}
@@ -477,7 +497,7 @@ const Chat = () => {
               <div className="empty-state">No messages yet. Start the conversation.</div>
             ) : (
               messages.map((msg, index) => {
-                const isOutgoing = Number(msg.senderId) === Number(currentUser?.id);
+                const isOutgoing = Number(msg.senderId) === Number(activeUser?.id);
                 return (
                   <div key={msg.id || index} className={`message-row ${isOutgoing ? "outgoing" : "incoming"}`}>
                     <div className={`message-bubble ${isOutgoing ? "outgoing" : "incoming"}`}>
@@ -544,6 +564,66 @@ const Chat = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isGroupSettingsOpen && selectedConversation?.type === "group" && (
+        <div className="modal-overlay" onClick={closeGroupSettings}>
+          <div className="modal-card group-settings-card" onClick={(event) => event.stopPropagation()}>
+            <div className="group-settings-header">
+              <div>
+                <h3>{selectedConversation.title}</h3>
+                <p>Group management panel</p>
+              </div>
+              <button className="close-modal-btn" onClick={closeGroupSettings}>×</button>
+            </div>
+
+            {groupSettingsError && <div className="chat-error">{groupSettingsError}</div>}
+
+            <div className="group-settings-search">
+              <input
+                type="text"
+                placeholder="Search users to add or remove"
+                value={groupSettingsSearch}
+                onChange={(event) => setGroupSettingsSearch(event.target.value)}
+              />
+            </div>
+
+            <div className="group-settings-list">
+              {groupSettingsSearchResults.length === 0 ? (
+                <div className="empty-state">No users found.</div>
+              ) : (
+                groupSettingsSearchResults.map((user) => (
+                  <div key={user.id} className="group-settings-row">
+                    <div>
+                      <p className="contact-name">{user.name}</p>
+                      <p className="contact-status">{user.role || "User"}</p>
+                    </div>
+                    <div>
+                      {user.inGroup ? (
+                        <button className="member-remove-btn" onClick={() => removeGroupMember(user.id)}>
+                          Remove
+                        </button>
+                      ) : (
+                        <button className="member-add-btn" onClick={() => addGroupMember(user.id)}>
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="modal-actions group-delete-actions">
+              <button type="button" className="secondary-btn" onClick={closeGroupSettings}>
+                Close
+              </button>
+              <button type="button" className="delete-group-btn" onClick={deleteGroup} disabled={isLoading}>
+                Delete Group
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -473,6 +473,57 @@ const removeGroupMember = async (req, res) => {
   }
 };
 
+const deleteGroupConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { adminId } = req.body;
+    const pool = await getDbPool();
+
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin ID is required",
+      });
+    }
+
+    const conversation = await getConversationDetails(pool, conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    if (conversation.type !== "group") {
+      return res.status(400).json({
+        success: false,
+        message: "Only groups can be deleted with this endpoint",
+      });
+    }
+
+    const canManage = await isGroupAdmin(pool, conversationId, adminId);
+    if (!canManage) {
+      return res.status(403).json({
+        success: false,
+        message: "Only group admin can delete the group",
+      });
+    }
+
+    await pool.execute("DELETE FROM jc_web_pros_conversations WHERE id = ?", [conversationId]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Group deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 const createMessage = async (req, res) => {
   try {
     const { conversationId, senderId, message } = req.body;
@@ -531,6 +582,7 @@ module.exports = {
   getConversationById,
   addGroupMembers,
   removeGroupMember,
+  deleteGroupConversation,
   getConversationMessages,
   createMessage,
 };
