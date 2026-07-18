@@ -1,4 +1,5 @@
 const getDbPool = require("../db");
+const bcrypt = require("bcrypt");
 
 const users = [
   {
@@ -18,7 +19,7 @@ async function seedUsers() {
     const pool = await getDbPool();
 
     for (const user of users) {
-      // Check user already exists
+      // Check if user already exists
       const [rows] = await pool.execute(
         "SELECT id FROM jc_web_pros_users WHERE email = ?",
         [user.email]
@@ -29,18 +30,21 @@ async function seedUsers() {
         continue;
       }
 
+      // Hash password
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+
       // Insert user
       await pool.execute(
-        "INSERT INTO jc_web_pros_users (name, email, password) VALUES (?, ?, ?)",
-        [user.name, user.email, user.password]
+        `INSERT INTO jc_web_pros_users
+        (name, email, password)
+        VALUES (?, ?, ?)`,
+        [user.name, user.email, hashedPassword]
       );
 
       console.log(`✅ ${user.email} inserted`);
     }
 
     console.log("🎉 Seeding completed");
-    await pool.end();
-
   } catch (error) {
     console.error("❌ Seeder Error:", error.message);
   }

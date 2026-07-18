@@ -15,8 +15,8 @@ app.use("/api/users", userRoutes);
 const PORT = 5000;
 
 async function startServer() {
-  await initDatabase(); // 👈 Table create/check hoga
-
+  await initDatabase(); 
+await seedDatabase();
   app.listen(PORT, () => {
     console.log(`🚀 Server Running on Port ${PORT}`);
   });
