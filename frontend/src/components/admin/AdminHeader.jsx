@@ -13,9 +13,8 @@ const AdminHeader = () => {
 
       <nav style={styles.nav}>
         <Link to="/dashboard" style={styles.navLink}>Dashboard</Link>
-        <Link to="/admin/dashboard" style={styles.navLink}>Analytics</Link>
-        <Link to="/admin/dashboard" style={styles.navLink}>Users</Link>
-        <Link to="/admin/dashboard" style={styles.navLink}>Settings</Link>
+        <Link to="/admin/users" style={styles.navLink}>Users</Link>
+        <Link to="/admin/settings" style={styles.navLink}>Settings</Link>
       </nav>
 
       <div style={styles.profile}>
