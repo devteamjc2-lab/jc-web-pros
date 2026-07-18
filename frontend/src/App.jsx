@@ -9,19 +9,20 @@ import AppRoutes from "./routes/AppRoutes";
 function AppLayout() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin") || location.pathname === "/dashboard";
+  const isChatRoute = location.pathname === "/chat";
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: isAdminRoute ? "#e2e8f0" : "#fff" }}>
       {isAdminRoute ? <AdminHeader /> : null}
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        {!isAdminRoute ? <Header /> : null}
+        {!isAdminRoute && !isChatRoute ? <Header /> : null}
 
         <main style={{ flex: 1, minHeight: "100vh", padding: isAdminRoute ? "28px 30px" : "0" }}>
           <AppRoutes />
         </main>
 
-        {!isAdminRoute ? <Footer /> : <AdminFooter />}
+        {!isAdminRoute && !isChatRoute ? <Footer /> : isAdminRoute ? <AdminFooter /> : null}
       </div>
     </div>
   );
