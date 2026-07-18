@@ -3,23 +3,23 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 
-
 const initDatabase = require("./database/initDatabase");
 const seedDatabase = require("./seeders/userSeeder");
+const getDbPool = require("./db");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-
 const userRoutes = require("./routes/userRoutes");
-app.use("/api/users", userRoutes);
+const chatRoutes = require("./routes/chatRoutes");
 
+app.use("/api/users", userRoutes);
+app.use("/api/chats", chatRoutes);
 
 // Create HTTP Server
 const server = http.createServer(app);
-
 
 // Initialize Socket.IO
 const io = new Server(server, {
@@ -29,45 +29,56 @@ const io = new Server(server, {
   },
 });
 
-
 // Socket Connection
 io.on("connection", (socket) => {
-
   console.log("🟢 User Connected:", socket.id);
 
-
-  socket.on("send_message", (data) => {
-
-    console.log("Message:", data);
-
-    // Send message to all connected users
-    io.emit("receive_message", data);
-
+  socket.on("join_conversation", ({ conversationId, userId }) => {
+    if (conversationId) {
+      socket.join(`conversation:${conversationId}`);
+      console.log(`👥 User ${userId} joined conversation ${conversationId}`);
+    }
   });
 
+  socket.on("leave_conversation", (conversationId) => {
+    if (conversationId) {
+      socket.leave(`conversation:${conversationId}`);
+    }
+  });
+
+  socket.on("send_message", (data) => {
+    try {
+      const { conversationId, senderId, message, senderName } = data;
+      if (!conversationId || !senderId || !message?.trim()) {
+        return;
+      }
+
+      io.to(`conversation:${conversationId}`).emit("receive_message", {
+        conversationId,
+        senderId,
+        senderName: senderName || "User",
+        message: message.trim(),
+      });
+    } catch (error) {
+      console.error("Socket message error:", error);
+    }
+  });
 
   socket.on("disconnect", () => {
     console.log("🔴 User Disconnected:", socket.id);
   });
-
 });
-
 
 const PORT = 5000;
 
-
 async function startServer() {
-
-  await initDatabase(); 
+  await initDatabase();
   await seedDatabase();
-
 
   server.listen(PORT, () => {
     console.log(`🚀 Server Running on Port ${PORT}`);
     console.log(`💬 Socket.IO Running`);
   });
-
 }
-
 
 startServer();

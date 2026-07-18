@@ -6,11 +6,13 @@ const users = [
     name: "Admin",
     email: "admin@gmail.com",
     password: "123456",
+    role: "Admin",
   },
   {
     name: "Keshav",
     email: "keshav@gmail.com",
     password: "123456",
+    role: "User",
   },
 ];
 
@@ -26,6 +28,9 @@ async function seedUsers() {
       );
 
       if (rows.length > 0) {
+        if (user.role) {
+          await pool.execute("UPDATE jc_web_pros_users SET role = ? WHERE email = ?", [user.role, user.email]);
+        }
         console.log(`⏩ ${user.email} already exists. Skipping...`);
         continue;
       }
@@ -36,9 +41,9 @@ async function seedUsers() {
       // Insert user
       await pool.execute(
         `INSERT INTO jc_web_pros_users
-        (name, email, password)
-        VALUES (?, ?, ?)`,
-        [user.name, user.email, hashedPassword]
+        (name, email, password, role)
+        VALUES (?, ?, ?, ?)`,
+        [user.name, user.email, hashedPassword, user.role || "User"]
       );
 
       console.log(`✅ ${user.email} inserted`);
