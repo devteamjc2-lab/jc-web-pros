@@ -473,6 +473,62 @@ const removeGroupMember = async (req, res) => {
   }
 };
 
+const updateGroupName = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { adminId, name } = req.body;
+    const pool = await getDbPool();
+
+    if (!adminId || !name?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin ID and group name are required",
+      });
+    }
+
+    const conversation = await getConversationDetails(pool, conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    if (conversation.type !== "group") {
+      return res.status(400).json({
+        success: false,
+        message: "Only group names can be updated with this endpoint",
+      });
+    }
+
+    const canManage = await isGroupAdmin(pool, conversationId, adminId);
+    if (!canManage) {
+      return res.status(403).json({
+        success: false,
+        message: "Only group admin can rename the group",
+      });
+    }
+
+    await pool.execute(
+      "UPDATE jc_web_pros_conversations SET name = ? WHERE id = ?",
+      [name.trim(), conversationId]
+    );
+
+    const updatedConversation = await getConversationDetails(pool, conversationId);
+    return res.status(200).json({
+      success: true,
+      conversation: updatedConversation,
+      message: "Group name updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 const deleteGroupConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -582,6 +638,7 @@ module.exports = {
   getConversationById,
   addGroupMembers,
   removeGroupMember,
+  updateGroupName,
   deleteGroupConversation,
   getConversationMessages,
   createMessage,

@@ -15,6 +15,7 @@ const Chat = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
   const [groupSettingsSearch, setGroupSettingsSearch] = useState("");
+  const [groupSettingsName, setGroupSettingsName] = useState("");
   const [groupSettingsError, setGroupSettingsError] = useState("");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -37,18 +38,42 @@ const Chat = () => {
   const groupSettingsSearchResults = useMemo(() => {
     if (!selectedConversation) return [];
     const query = groupSettingsSearch.trim().toLowerCase();
-    return users
-      .filter((user) => !query || user.name.toLowerCase().includes(query))
-      .map((user) => ({
+
+    const allUsersMap = new Map();
+    selectedConversation.members?.forEach((member) => {
+      allUsersMap.set(member.id, {
+        ...member,
+        inGroup: true,
+      });
+    });
+
+    users.forEach((user) => {
+      allUsersMap.set(user.id, {
         ...user,
         inGroup: selectedConversation.members?.some((member) => member.id === user.id),
-      }));
-  }, [groupSettingsSearch, users, selectedConversation]);
+      });
+    });
+
+    if (activeUser && !allUsersMap.has(activeUser.id)) {
+      allUsersMap.set(activeUser.id, {
+        ...activeUser,
+        inGroup: selectedConversation.members?.some((member) => member.id === activeUser.id),
+      });
+    }
+
+    return Array.from(allUsersMap.values())
+      .filter((user) => !query || user.name.toLowerCase().includes(query))
+      .sort((a, b) => {
+        if (a.inGroup === b.inGroup) return a.name.localeCompare(b.name);
+        return a.inGroup ? -1 : 1;
+      });
+  }, [groupSettingsSearch, users, selectedConversation, activeUser]);
 
   const openGroupSettings = async () => {
     setGroupSettingsError("");
     setGroupSettingsSearch("");
-    await refreshSelectedConversation();
+    const conversation = await refreshSelectedConversation();
+    setGroupSettingsName(conversation?.name || selectedConversation?.name || "");
     setIsGroupSettingsOpen(true);
   };
 
@@ -306,12 +331,13 @@ const Chat = () => {
   };
 
   const refreshSelectedConversation = async () => {
-    if (!selectedConversation?.id) return;
+    if (!selectedConversation?.id) return null;
     const conversation = await fetchConversationDetails(selectedConversation.id);
     if (conversation) {
       setSelectedConversation(conversation);
       setConversations((prev) => prev.map((item) => (item.id === conversation.id ? conversation : item)));
     }
+    return conversation;
   };
 
   const addGroupMember = async (userId) => {
@@ -365,6 +391,32 @@ const Chat = () => {
     } catch (error) {
       console.error("Remove member error:", error);
       setGroupSettingsError(error.message || "Unable to remove member");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateGroupName = async () => {
+    if (!selectedConversation?.id || !activeUser?.id || !groupSettingsName.trim()) return;
+    setGroupSettingsError("");
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/chats/conversations/${selectedConversation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminId: activeUser.id, name: groupSettingsName.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        setGroupSettingsError(data.message || "Unable to update group name");
+        return;
+      }
+      setSelectedConversation(data.conversation);
+      setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
+      setGroupSettingsName(data.conversation.name || "");
+    } catch (error) {
+      console.error("Update group name error:", error);
+      setGroupSettingsError(error.message || "Unable to update group name");
     } finally {
       setIsLoading(false);
     }
@@ -465,10 +517,10 @@ const Chat = () => {
           <div className="chat-header">
             <div className="header-left">
               <div className="header-badge">
-                {selectedConversation ? getInitials(selectedConversation.title) : "C"}
+                {selectedConversation ? getInitials(selectedConversation.title || selectedConversation.name) : "C"}
               </div>
               <div>
-                <h2>{selectedConversation?.title || "Select a conversation"}</h2>
+                <h2>{selectedConversation?.title || selectedConversation?.name || "Select a conversation"}</h2>
                 <p>
                   {selectedConversation?.type === "group"
                     ? "Group chat • admin can manage members"
@@ -576,10 +628,23 @@ const Chat = () => {
           <div className="modal-card group-settings-card" onClick={(event) => event.stopPropagation()}>
             <div className="group-settings-header">
               <div>
-                <h3>{selectedConversation.title}</h3>
+                <h3>{selectedConversation.title || selectedConversation.name}</h3>
                 <p>Group management panel</p>
               </div>
               <button className="close-modal-btn" onClick={closeGroupSettings}>×</button>
+            </div>
+
+            <div className="group-name-edit">
+              <input
+                type="text"
+                className="group-name-input"
+                placeholder="Group name"
+                value={groupSettingsName}
+                onChange={(event) => setGroupSettingsName(event.target.value)}
+              />
+              <button className="send-btn" onClick={updateGroupName} disabled={isLoading || !groupSettingsName.trim()}>
+                Save
+              </button>
             </div>
 
             {groupSettingsError && <div className="chat-error">{groupSettingsError}</div>}
