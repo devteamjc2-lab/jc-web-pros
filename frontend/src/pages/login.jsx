@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '/src/assets/css/login.css';
 const Login = () => {
+  const navigate = useNavigate();
    
   // 1. Manage State for Inputs and Errors
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -64,6 +66,7 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       console.log("Token:", data.token);
+        navigate("/dashboard");
     } else {
       setErrors({
         apiError: data.message,

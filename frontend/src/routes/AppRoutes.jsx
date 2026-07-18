@@ -96,7 +96,7 @@ function ChatPage() {
         ))}
 
         {!messages.length && !status && (
-          <p className="empty-state">Abhi koi message nahi hai. Pehla message bhejo.</p>
+          <p className="empty-state">No messages yet. Be the first to say hello!</p>
         )}
       </div>
 
@@ -146,6 +146,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<AuthMiddleware><Dashboard /></AuthMiddleware>} />
       <Route path="/admin/users" element={<AuthMiddleware><Users /></AuthMiddleware>} />
       <Route path="/users" element={<AuthMiddleware><Users /></AuthMiddleware>} />
+      {/* <Route path="/admin/chat" element={<AuthMiddleware><ChatPage /></AuthMiddleware>} /> */}
 
     </Routes>
   );
