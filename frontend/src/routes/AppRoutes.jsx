@@ -5,6 +5,7 @@ import Home from "../pages/Home";
 import About from "../pages/About";
 import Contact from "../pages/Contact";
 import Login from "../pages/login";
+import Dashboard from "../pages/admin/dashboard";
 
 import AuthMiddleware from "../middleware/AuthMiddleware";
 import PublicMiddleware from "../middleware/PublicMiddleware";
@@ -150,6 +151,15 @@ const AppRoutes = () => {
         element={
           <AuthMiddleware>
             <ChatPage />
+          </AuthMiddleware>
+        }
+      />
+   
+      <Route
+        path="/dashboard"
+        element={
+          <AuthMiddleware>
+            <Dashboard />
           </AuthMiddleware>
         }
       />
