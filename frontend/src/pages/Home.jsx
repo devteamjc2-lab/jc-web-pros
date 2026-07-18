@@ -297,7 +297,7 @@ const s = {
   // HERO
   hero: { minHeight: "600px", background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)", display: "flex", alignItems: "center", position: "relative", padding: "80px 24px" },
   heroOverlay: { position: "absolute", inset: 0, background: "url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1600') center/cover", opacity: 0.08 },
-  heroContent: { maxWidth: "1200px", margin: "0 auto", position: "relative", zIndex: 1, maxWidth: "700px" },
+  heroContent: { maxWidth: "700px", margin: "0 auto", position: "relative", zIndex: 1 },
   heroTag: { fontSize: "11px", fontWeight: "700", letterSpacing: "2px", color: "#e8501a", textTransform: "uppercase", marginBottom: "16px" },
   heroTitle: { fontSize: "clamp(28px, 4vw, 46px)", fontWeight: "900", color: "#fff", lineHeight: "1.15", marginBottom: "20px" },
   heroDesc: { fontSize: "15px", color: "rgba(255,255,255,0.75)", lineHeight: "1.8", marginBottom: "32px", maxWidth: "600px" },

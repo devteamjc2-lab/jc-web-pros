@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = [
-    { label: "Home", href: "#" },
-    { label: "About", href: "#about" },
+    { label: "Home", to: "/" },
+    { label: "About", to: "/about" },
     { label: "Services", href: "#services" },
     { label: "Portfolio", href: "#portfolio" },
     { label: "Blog", href: "#blog" },
-    { label: "Contact Us", href: "#contact" },
+    { label: "Contact Us", to: "/contact" },
+    { label: "Login", to: "/login" },
   ];
 
   return (
@@ -23,14 +25,27 @@ export default function Header() {
 
         {/* DESKTOP NAV */}
         <nav style={styles.nav}>
-          {navLinks.map((link) => (
-            <a key={link.label} href={link.href} style={styles.navLink}
-              onMouseEnter={e => e.target.style.color = "#e8501a"}
-              onMouseLeave={e => e.target.style.color = "#333"}
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            if (link.to) {
+              return (
+                <Link key={link.label} to={link.to} style={styles.navLink}
+                  onMouseEnter={e => e.target.style.color = "#e8501a"}
+                  onMouseLeave={e => e.target.style.color = "#333"}
+                >
+                  {link.label}
+                </Link>
+              );
+            }
+
+            return (
+              <a key={link.label} href={link.href} style={styles.navLink}
+                onMouseEnter={e => e.target.style.color = "#e8501a"}
+                onMouseLeave={e => e.target.style.color = "#333"}
+              >
+                {link.label}
+              </a>
+            );
+          })}
           <a href="#contact" style={styles.ctaBtn}>GET A QUOTE</a>
         </nav>
 
@@ -45,13 +60,25 @@ export default function Header() {
       {/* MOBILE MENU */}
       {menuOpen && (
         <div style={styles.mobileMenu}>
-          {navLinks.map((link) => (
-            <a key={link.label} href={link.href} style={styles.mobileLink}
-              onClick={() => setMenuOpen(false)}
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            if (link.to) {
+              return (
+                <Link key={link.label} to={link.to} style={styles.mobileLink}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              );
+            }
+
+            return (
+              <a key={link.label} href={link.href} style={styles.mobileLink}
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            );
+          })}
           <a href="#contact" style={styles.mobileCta} onClick={() => setMenuOpen(false)}>
             GET A QUOTE
           </a>
