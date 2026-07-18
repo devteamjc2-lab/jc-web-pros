@@ -59,7 +59,7 @@ const login = async (req, res) => {
    const getAllUsers = async (req, res) => {
             try {
                 const pool = await getDbPool();
-                const [rows] = await pool.execute("SELECT id, name, email FROM jc_web_pros_users");
+                const [rows] = await pool.execute("SELECT id, name, email, role FROM jc_web_pros_users");
                 return res.status(200).json({
                     success: true,
                     message: "Users retrieved successfully",
