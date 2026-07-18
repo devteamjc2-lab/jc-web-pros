@@ -16,8 +16,6 @@ const Chat = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const currentUserStatus = currentUser?.role === "Admin" ? "Admin online" : "Active now";
-
   const getStoredUser = () => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -25,6 +23,13 @@ const Chat = () => {
       return null;
     }
   };
+
+  const activeUser = currentUser || getStoredUser();
+  const currentUserStatus = activeUser?.role === "Admin" ? "Admin online" : "Active now";
+  const isGroupManager =
+    selectedConversation?.type === "group" &&
+    activeUser &&
+    (selectedConversation.created_by === activeUser.id || activeUser.role?.toLowerCase() === "admin");
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -90,11 +95,11 @@ const Chat = () => {
   }, [currentUser?.id]);
 
   useEffect(() => {
-    if (!selectedConversation?.id || !currentUser?.id) return;
+    if (!selectedConversation?.id || !activeUser?.id) return;
 
     const loadMessages = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/chats/messages/${selectedConversation.id}`);
+        const response = await fetch(`http://localhost:5000/api/chats/messages/${selectedConversation.id}?userId=${activeUser.id}`);
         const data = await response.json();
         if (data.success) {
           setMessages(data.messages || []);
@@ -259,6 +264,77 @@ const Chat = () => {
     );
   };
 
+  const fetchConversationDetails = async (conversationId) => {
+    if (!activeUser?.id) return null;
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/chats/conversation/${conversationId}?userId=${activeUser.id}`
+      );
+      const data = await response.json();
+      return data.success ? data.conversation : null;
+    } catch (error) {
+      console.error("Fetch conversation error:", error);
+      return null;
+    }
+  };
+
+  const refreshSelectedConversation = async () => {
+    if (!selectedConversation?.id) return;
+    const conversation = await fetchConversationDetails(selectedConversation.id);
+    if (conversation) {
+      setSelectedConversation(conversation);
+      setConversations((prev) => prev.map((item) => (item.id === conversation.id ? conversation : item)));
+    }
+  };
+
+  const addGroupMember = async (userId) => {
+    if (!selectedConversation?.id || !activeUser?.id) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/chats/conversations/${selectedConversation.id}/members`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminId: activeUser.id, members: [userId] }),
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setSelectedConversation(data.conversation);
+        setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
+      }
+    } catch (error) {
+      console.error("Add member error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeGroupMember = async (memberId) => {
+    if (!selectedConversation?.id || !activeUser?.id) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/chats/conversations/${selectedConversation.id}/members/${memberId}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminId: activeUser.id }),
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setSelectedConversation(data.conversation);
+        setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
+      }
+    } catch (error) {
+      console.error("Remove member error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="chat-page">
       <div className="chat-card">
@@ -349,6 +425,49 @@ const Chat = () => {
               </div>
             </div>
           </div>
+
+          {selectedConversation?.type === "group" && (
+            <div className="group-panel">
+              <div className="group-row">
+                <div className="group-label">Members:</div>
+                <div className="group-members">
+                  {selectedConversation.members?.map((member) => (
+                    <span key={member.id} className="group-member">
+                      {member.name}
+                      {isGroupManager && member.id !== selectedConversation.created_by && (
+                        <button
+                          type="button"
+                          className="member-remove-btn"
+                          onClick={() => removeGroupMember(member.id)}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {isGroupManager && (
+                <div className="group-row group-add-row">
+                  <div className="group-label">Add members:</div>
+                  <div className="group-members-add">
+                    {users
+                      .filter((user) => !selectedConversation.members?.some((member) => member.id === user.id))
+                      .map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          className="member-add-btn"
+                          onClick={() => addGroupMember(user.id)}
+                        >
+                          + {user.name}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="chat-body">
             {errors.apiError && <div className="chat-error">{errors.apiError}</div>}

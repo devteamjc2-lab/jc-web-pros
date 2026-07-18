@@ -27,6 +27,32 @@ const getConversationDetails = async (pool, conversationId) => {
   };
 };
 
+const isConversationMember = async (pool, conversationId, userId) => {
+  const [rows] = await pool.execute(
+    "SELECT 1 FROM jc_web_pros_conversation_members WHERE conversation_id = ? AND user_id = ?",
+    [conversationId, userId]
+  );
+  return rows.length > 0;
+};
+
+const isGroupAdmin = async (pool, conversationId, userId) => {
+  const conversation = await getConversationDetails(pool, conversationId);
+  if (!conversation || conversation.type !== "group") {
+    return false;
+  }
+
+  if (conversation.created_by === Number(userId)) {
+    return true;
+  }
+
+  const [userRows] = await pool.execute(
+    "SELECT role FROM jc_web_pros_users WHERE id = ?",
+    [userId]
+  );
+
+  return userRows[0]?.role?.toLowerCase() === "admin";
+};
+
 const login = async (req, res) => {
   try {
     console.log("Login API called");
@@ -241,7 +267,23 @@ const getUserConversations = async (req, res) => {
 const getConversationMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
+    const { userId } = req.query;
     const pool = await getDbPool();
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const isMember = await isConversationMember(pool, conversationId, userId);
+    if (!isMember) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a member of this conversation",
+      });
+    }
 
     const [rows] = await pool.execute(
       `SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId, m.message, m.created_at AS createdAt, u.name AS senderName
@@ -255,6 +297,172 @@ const getConversationMessages = async (req, res) => {
     return res.status(200).json({
       success: true,
       messages: rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const getConversationById = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { userId } = req.query;
+    const pool = await getDbPool();
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const isMember = await isConversationMember(pool, conversationId, userId);
+    if (!isMember) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a member of this conversation",
+      });
+    }
+
+    const conversation = await getConversationDetails(pool, conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      conversation,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const addGroupMembers = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { adminId, members = [] } = req.body;
+    const pool = await getDbPool();
+
+    if (!adminId || !Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin ID and member list are required",
+      });
+    }
+
+    const conversation = await getConversationDetails(pool, conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    if (conversation.type !== "group") {
+      return res.status(400).json({
+        success: false,
+        message: "Only groups can add members",
+      });
+    }
+
+    const canManage = await isGroupAdmin(pool, conversationId, adminId);
+    if (!canManage) {
+      return res.status(403).json({
+        success: false,
+        message: "Only group admin can manage members",
+      });
+    }
+
+    const existingMemberIds = conversation.members.map((member) => member.id);
+    const uniqueMemberIds = [...new Set(members.map((id) => Number(id)))].filter((id) => id && !existingMemberIds.includes(id));
+
+    for (const userId of uniqueMemberIds) {
+      await pool.execute(
+        "INSERT INTO jc_web_pros_conversation_members (conversation_id, user_id) VALUES (?, ?)",
+        [conversationId, userId]
+      );
+    }
+
+    const updatedConversation = await getConversationDetails(pool, conversationId);
+    return res.status(200).json({
+      success: true,
+      conversation: updatedConversation,
+      message: "Members added successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const removeGroupMember = async (req, res) => {
+  try {
+    const { conversationId, memberId } = req.params;
+    const { adminId } = req.body;
+    const pool = await getDbPool();
+
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin ID is required",
+      });
+    }
+
+    const conversation = await getConversationDetails(pool, conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    if (conversation.type !== "group") {
+      return res.status(400).json({
+        success: false,
+        message: "Only groups can remove members",
+      });
+    }
+
+    const canManage = await isGroupAdmin(pool, conversationId, adminId);
+    if (!canManage) {
+      return res.status(403).json({
+        success: false,
+        message: "Only group admin can manage members",
+      });
+    }
+
+    if (Number(memberId) === conversation.created_by) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot remove the group creator",
+      });
+    }
+
+    await pool.execute(
+      "DELETE FROM jc_web_pros_conversation_members WHERE conversation_id = ? AND user_id = ?",
+      [conversationId, memberId]
+    );
+
+    const updatedConversation = await getConversationDetails(pool, conversationId);
+    return res.status(200).json({
+      success: true,
+      conversation: updatedConversation,
+      message: "Member removed successfully",
     });
   } catch (error) {
     console.error(error);
@@ -320,6 +528,9 @@ module.exports = {
   getAllUsers,
   createOrGetConversation,
   getUserConversations,
+  getConversationById,
+  addGroupMembers,
+  removeGroupMember,
   getConversationMessages,
   createMessage,
 };

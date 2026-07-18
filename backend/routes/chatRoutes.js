@@ -5,6 +5,9 @@ const userController = require("../controllers/userController");
 
 router.post("/conversations", userController.createOrGetConversation);
 router.get("/conversations/:userId", userController.getUserConversations);
+router.get("/conversation/:conversationId", userController.getConversationById);
+router.post("/conversations/:conversationId/members", userController.addGroupMembers);
+router.delete("/conversations/:conversationId/members/:memberId", userController.removeGroupMember);
 router.get("/messages/:conversationId", userController.getConversationMessages);
 router.post("/messages", userController.createMessage);
 
