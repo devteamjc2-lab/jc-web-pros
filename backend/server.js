@@ -1,17 +1,25 @@
 const express = require("express");
 const cors = require("cors");
 
+const initDatabase = require("./database/initDatabase");
+const seedDatabase = require("./seeders/userSeeder");
+
 const app = express();
 
-// CORS middleware
 app.use(cors());
-
 app.use(express.json());
 
 const userRoutes = require("./routes/userRoutes");
-
 app.use("/api/users", userRoutes);
 
-app.listen(5000, () => {
-    console.log("Server Running on Port 5000");
-});
+const PORT = 5000;
+
+async function startServer() {
+  await initDatabase(); // 👈 Table create/check hoga
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server Running on Port ${PORT}`);
+  });
+}
+
+startServer();
