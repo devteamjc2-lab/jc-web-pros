@@ -1,16 +1,43 @@
 import { useEffect, useState } from "react";
 
 const Users = () => {
-  const [users, setUsers] = useState([
-    { id: 1, name: "Aman Sharma", email: "aman@example.com", role: "Admin", status: "Active" },
-    { id: 2, name: "Riya Khan", email: "riya@example.com", role: "Editor", status: "Pending" },
-    { id: 3, name: "Naveed Ali", email: "naveed@example.com", role: "Viewer", status: "Active" },
-  ]);
+    const [users, setUsers] = useState([]);
+    const [errors, setErrors] = useState({});
+ 
+    const getAllUsers = async () => {
+    try {
+        const response = await fetch("http://localhost:5000/api/users/get-all-users", {
+        method: "GET",
+        headers: {
+        "Content-Type": "application/json",
+        },
+    });
+     const data = await response.json();
+    console.log("Response:", data);
+    if (data.success) {
+        console.log("Users:", data.users);
+        setUsers(data.users);
+    } else {
+        setErrors({
+        apiError: data.message,
+        });
+    }
 
-  useEffect(() => {
+        } catch (error) {
+        console.error("API Error:", error);
+        setErrors({
+            apiError: "Something went wrong",
+        });
+  }
+}
+ useEffect(() => {
     document.title = "Users | Admin";
-  }, []);
 
+    getAllUsers();
+  }, []);
+const setUsersList = (newUsers) => {
+  setUsers(newUsers);
+};
   return (
     <main style={styles.page}>
       <section style={styles.header}>

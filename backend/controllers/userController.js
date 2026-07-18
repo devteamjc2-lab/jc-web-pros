@@ -56,6 +56,25 @@ const login = async (req, res) => {
             }
         };
 
-    module.exports = {
-        login,
-    };
+   const getAllUsers = async (req, res) => {
+            try {
+                const pool = await getDbPool();
+                const [rows] = await pool.execute("SELECT id, name, email FROM jc_web_pros_users");
+                return res.status(200).json({
+                    success: true,
+                    message: "Users retrieved successfully",
+                    users: rows,
+                });
+            } catch (error) {
+                console.error(error);
+                return res.status(500).json({
+                    success: false,
+                    message: "Internal Server Error",
+                });
+            }
+        };
+
+module.exports = {
+    login,
+    getAllUsers,
+};
