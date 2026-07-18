@@ -5,15 +5,40 @@ import "/src/assets/css/chat.css";
 const Chat = () => {
   const currentUser = "Keshav Official";
   const currentUserStatus = "Active now";
-  const contacts = [
-    { name: "Priyanka JC Official", status: "Online" },
-    { name: "Navneet Official", status: "Away" },
-    { name: "Varinder Singh", status: "Online" },
-    { name: "Aneesh Kaushal", status: "Online" },
-    { name: "Harshita Khanna", status: "Last active 08:05" },
-  ];
 
-  const [selectedContact, setSelectedContact] = useState(contacts[0]);
+  const [users, setUsers] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  const getAllUsers = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/users/get-all-users", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      console.log("Response:", data);
+      if (data.success) {
+        console.log("Users:", data.users);
+        setUsers(data.users);
+        if (!selectedContact && data.users.length > 0) {
+          setSelectedContact(data.users[0]);
+        }
+      } else {
+        setErrors({
+          apiError: data.message,
+        });
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      setErrors({
+        apiError: "Something went wrong",
+      });
+    }
+  };
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([
     { user: "Priyanka JC Official", message: "Hi, Going to start my day", time: "08:52" },
@@ -22,10 +47,8 @@ const Chat = () => {
 
 
   useEffect(() => {
-
+    getAllUsers();
     socket.connect();
-
-
     socket.on("connect", () => {
       console.log("Socket Connected:", socket.id);
     });
@@ -91,10 +114,10 @@ const Chat = () => {
             <input type="text" placeholder="Search" />
           </div>
           <div className="contact-list">
-            {contacts.map((contact) => (
+            {users.map((contact) => (
               <div
-                key={contact.name}
-                className={`contact-item ${selectedContact.name === contact.name ? "active" : ""}`}
+                key={contact.id || contact.email}
+                className={`contact-item ${selectedContact?.name === contact.name ? "active" : ""}`}
                 onClick={() => setSelectedContact(contact)}
               >
                 <div className="contact-avatar">
@@ -106,7 +129,7 @@ const Chat = () => {
                 </div>
                 <div className="contact-details">
                   <p className="contact-name">{contact.name}</p>
-                  <p className="contact-status">{contact.status}</p>
+                  <p className="contact-status">{contact.role || "Online"}</p>
                 </div>
               </div>
             ))}
