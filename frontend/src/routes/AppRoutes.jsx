@@ -138,33 +138,20 @@ const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-      <Route
-        path="/login"
-        element={
-          <PublicMiddleware>
-            <Login />
-          </PublicMiddleware>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <AuthMiddleware>
-            <ChatPage />
-          </AuthMiddleware>
-        }
-      />
-   
-      <Route
-        path="/dashboard"
-        element={
-          <AuthMiddleware>
-            <Dashboard />
-          </AuthMiddleware>
-        }
-      />
-    </Routes>
+      <Route path="/login" element={<PublicMiddleware> <Login /></PublicMiddleware>}/>
+      <Route path="/chat" element={<AuthMiddleware><ChatPage /></AuthMiddleware>}/>
+      
+      {/* admin routes */}
+      <Route path="/dashboard" element={<AuthMiddleware><Dashboard /></AuthMiddleware>}/>
+
+      <Route path="/admin/users" element={<AuthMiddleware><Users /></AuthMiddleware>}/>
+      
+    </Routes>    
   );
+
+ 
+
+  
 };
 
 export default AppRoutes;
