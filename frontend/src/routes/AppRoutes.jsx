@@ -12,7 +12,7 @@ import Chat from "../pages/Chat";
 import AuthMiddleware from "../middleware/AuthMiddleware";
 import PublicMiddleware from "../middleware/PublicMiddleware";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = import.meta.env.VITE_API_URL || "https://jc-web-pros.onrender.com/";
 
 
 
