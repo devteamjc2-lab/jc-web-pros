@@ -45,10 +45,11 @@ const Chat = () => {
       }));
   }, [groupSettingsSearch, users, selectedConversation]);
 
-  const openGroupSettings = () => {
-    setIsGroupSettingsOpen(true);
-    setGroupSettingsSearch("");
+  const openGroupSettings = async () => {
     setGroupSettingsError("");
+    setGroupSettingsSearch("");
+    await refreshSelectedConversation();
+    setIsGroupSettingsOpen(true);
   };
 
   const closeGroupSettings = () => {
@@ -315,6 +316,7 @@ const Chat = () => {
 
   const addGroupMember = async (userId) => {
     if (!selectedConversation?.id || !activeUser?.id) return;
+    setGroupSettingsError("");
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -326,15 +328,15 @@ const Chat = () => {
         }
       );
       const data = await response.json();
-      if (data.success) {
-        setSelectedConversation(data.conversation);
-        setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
-      } else {
-        setGroupSettingsError(data.message);
+      if (!response.ok || !data.success) {
+        setGroupSettingsError(data.message || "Unable to add member");
+        return;
       }
+      setSelectedConversation(data.conversation);
+      setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
     } catch (error) {
       console.error("Add member error:", error);
-      setGroupSettingsError("Unable to add member");
+      setGroupSettingsError(error.message || "Unable to add member");
     } finally {
       setIsLoading(false);
     }
@@ -342,6 +344,7 @@ const Chat = () => {
 
   const removeGroupMember = async (memberId) => {
     if (!selectedConversation?.id || !activeUser?.id) return;
+    setGroupSettingsError("");
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -353,15 +356,15 @@ const Chat = () => {
         }
       );
       const data = await response.json();
-      if (data.success) {
-        setSelectedConversation(data.conversation);
-        setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
-      } else {
-        setGroupSettingsError(data.message);
+      if (!response.ok || !data.success) {
+        setGroupSettingsError(data.message || "Unable to remove member");
+        return;
       }
+      setSelectedConversation(data.conversation);
+      setConversations((prev) => prev.map((item) => (item.id === data.conversation.id ? data.conversation : item)));
     } catch (error) {
       console.error("Remove member error:", error);
-      setGroupSettingsError("Unable to remove member");
+      setGroupSettingsError(error.message || "Unable to remove member");
     } finally {
       setIsLoading(false);
     }
@@ -594,25 +597,34 @@ const Chat = () => {
               {groupSettingsSearchResults.length === 0 ? (
                 <div className="empty-state">No users found.</div>
               ) : (
-                groupSettingsSearchResults.map((user) => (
-                  <div key={user.id} className="group-settings-row">
-                    <div>
-                      <p className="contact-name">{user.name}</p>
-                      <p className="contact-status">{user.role || "User"}</p>
+                groupSettingsSearchResults.map((user) => {
+                  const isCreator = user.id === selectedConversation.created_by;
+                  return (
+                    <div key={user.id} className="group-settings-row">
+                      <div>
+                        <p className="contact-name">{user.name}</p>
+                        <p className="contact-status">{user.role || "User"}</p>
+                      </div>
+                      <div>
+                        {user.inGroup ? (
+                          isCreator ? (
+                            <button className="secondary-btn" disabled>
+                              Creator
+                            </button>
+                          ) : (
+                            <button className="member-remove-btn" onClick={() => removeGroupMember(user.id)}>
+                              Remove
+                            </button>
+                          )
+                        ) : (
+                          <button className="member-add-btn" onClick={() => addGroupMember(user.id)}>
+                            Add
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      {user.inGroup ? (
-                        <button className="member-remove-btn" onClick={() => removeGroupMember(user.id)}>
-                          Remove
-                        </button>
-                      ) : (
-                        <button className="member-add-btn" onClick={() => addGroupMember(user.id)}>
-                          Add
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

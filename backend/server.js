@@ -69,7 +69,21 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
+
+server.on("error", (error) => {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+
+  const bind = typeof PORT === "string" ? `Pipe ${PORT}` : `Port ${PORT}`;
+  if (error.code === "EADDRINUSE") {
+    console.error(`❌ ${bind} is already in use. Please stop the existing process or set a different PORT.`);
+    process.exit(1);
+  }
+
+  throw error;
+});
 
 async function startServer() {
   await initDatabase();
