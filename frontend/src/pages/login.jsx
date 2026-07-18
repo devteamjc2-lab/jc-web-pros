@@ -53,7 +53,7 @@ const Login = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(formData), // ✅ Send state
+      body: JSON.stringify(formData), 
     });
 
     const data = await response.json();
@@ -61,7 +61,9 @@ const Login = () => {
     console.log("Response:", data);
 
     if (data.success) {
-      alert("Login Successful");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      console.log("Token:", data.token);
     } else {
       setErrors({
         apiError: data.message,
