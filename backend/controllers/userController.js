@@ -1,5 +1,6 @@
 const getDbPool = require("../db");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 
 const login = async (req, res) => {
@@ -7,6 +8,8 @@ const login = async (req, res) => {
 
         console.log("Login API called");
         const { email, password } = req.body;
+        const pool = await getDbPool();
+        
         const [rows] = await pool.execute("SELECT * FROM jc_web_pros_users WHERE email = ?",[email]);
         if (rows.length === 0) {
             return res.status(401).json({
@@ -22,9 +25,20 @@ const login = async (req, res) => {
                     message: "Invalid Email or Password",
                 });
                 } 
+                const token = jwt.sign(
+                {
+                    id: user.id,
+                    email: user.email,
+                },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: process.env.JWT_EXPIRES_IN,
+                }
+                );
                 return res.status(200).json({
                 success: true,
                 message: "Login Successful",
+                token: token,
                 user: {
                     id: user.id,
                     name: user.name,
