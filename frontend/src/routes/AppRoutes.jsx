@@ -6,6 +6,7 @@ import About from "../pages/About";
 import Contact from "../pages/Contact";
 import Login from "../pages/login";
 import Dashboard from "../pages/admin/dashboard";
+import Users from "../pages/admin/users";
 
 import AuthMiddleware from "../middleware/AuthMiddleware";
 import PublicMiddleware from "../middleware/PublicMiddleware";
@@ -138,15 +139,15 @@ const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/login" element={<PublicMiddleware> <Login /></PublicMiddleware>}/>
-      <Route path="/chat" element={<AuthMiddleware><ChatPage /></AuthMiddleware>}/>
-      
-      {/* admin routes */}
-      <Route path="/dashboard" element={<AuthMiddleware><Dashboard /></AuthMiddleware>}/>
+      <Route path="/login" element={<PublicMiddleware><Login /></PublicMiddleware>} />
+      <Route path="/chat" element={<AuthMiddleware><ChatPage /></AuthMiddleware>} />
 
-      <Route path="/admin/users" element={<AuthMiddleware><Users /></AuthMiddleware>}/>
-      
-    </Routes>    
+      {/* admin routes */}
+      <Route path="/dashboard" element={<AuthMiddleware><Dashboard /></AuthMiddleware>} />
+      <Route path="/admin/users" element={<AuthMiddleware><Users /></AuthMiddleware>} />
+      <Route path="/users" element={<AuthMiddleware><Users /></AuthMiddleware>} />
+
+    </Routes>
   );
 
  
