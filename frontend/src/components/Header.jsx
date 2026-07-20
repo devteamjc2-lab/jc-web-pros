@@ -12,6 +12,8 @@ export default function Header() {
     { label: "Blog", href: "#blog" },
     { label: "Contact Us", to: "/contact" },
     { label: "Login", to: "/login" },
+     { label: "Chat", to: "/chat" },
+
   ];
 
   return (
