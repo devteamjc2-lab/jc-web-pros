@@ -92,7 +92,7 @@ const Chat = () => {
 
   const getAllUsers = async () => {
     try {
-      const response = await fetch("https://jc-web-pros.onrender.com//api/users/get-all-users", {
+      const response = await fetch("https://jc-web-pros.onrender.com/api/users/get-all-users", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +116,7 @@ const Chat = () => {
     if (!currentUser?.id) return;
 
     try {
-      const response = await fetch(`https://jc-web-pros.onrender.com//api/chats/conversations/${currentUser.id}`);
+      const response = await fetch(`https://jc-web-pros.onrender.com/api/chats/conversations/${currentUser.id}`);
       const data = await response.json();
 
       if (data.success) {
@@ -151,7 +151,7 @@ const Chat = () => {
 
     const loadMessages = async () => {
       try {
-        const response = await fetch(`https://jc-web-pros.onrender.com//api/chats/messages/${selectedConversation.id}?userId=${activeUser.id}`);
+        const response = await fetch(`https://jc-web-pros.onrender.com/api/chats/messages/${selectedConversation.id}?userId=${activeUser.id}`);
         const data = await response.json();
         if (data.success) {
           setMessages(data.messages || []);
@@ -207,7 +207,7 @@ const Chat = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch("https://jc-web-pros.onrender.com//api/chats/conversations", {
+      const response = await fetch("https://jc-web-pros.onrender.com/api/chats/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -240,7 +240,7 @@ const Chat = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch("https://jc-web-pros.onrender.com//api/chats/conversations", {
+      const response = await fetch("https://jc-web-pros.onrender.com/api/chats/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -281,7 +281,7 @@ const Chat = () => {
     };
 
     try {
-      const response = await fetch("https://jc-web-pros.onrender.com//api/chats/messages", {
+      const response = await fetch("https://jc-web-pros.onrender.com/api/chats/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(outgoing),
@@ -320,7 +320,7 @@ const Chat = () => {
     if (!activeUser?.id) return null;
     try {
       const response = await fetch(
-        `https://jc-web-pros.onrender.com//api/chats/conversation/${conversationId}?userId=${activeUser.id}`
+        `https://jc-web-pros.onrender.com/api/chats/conversation/${conversationId}?userId=${activeUser.id}`
       );
       const data = await response.json();
       return data.success ? data.conversation : null;
@@ -346,7 +346,7 @@ const Chat = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://jc-web-pros.onrender.com//api/chats/conversations/${selectedConversation.id}/members`,
+        `https://jc-web-pros.onrender.com/api/chats/conversations/${selectedConversation.id}/members`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -374,7 +374,7 @@ const Chat = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://jc-web-pros.onrender.com//api/chats/conversations/${selectedConversation.id}/members/${memberId}`,
+        `https://jc-web-pros.onrender.com/api/chats/conversations/${selectedConversation.id}/members/${memberId}`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -401,7 +401,7 @@ const Chat = () => {
     setGroupSettingsError("");
     setIsLoading(true);
     try {
-      const response = await fetch(`https://jc-web-pros.onrender.com//api/chats/conversations/${selectedConversation.id}`, {
+      const response = await fetch(`https://jc-web-pros.onrender.com/api/chats/conversations/${selectedConversation.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adminId: activeUser.id, name: groupSettingsName.trim() }),
@@ -426,7 +426,7 @@ const Chat = () => {
     if (!selectedConversation?.id || !activeUser?.id) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`https://jc-web-pros.onrender.com//api/chats/conversations/${selectedConversation.id}`, {
+      const response = await fetch(`https://jc-web-pros.onrender.com/api/chats/conversations/${selectedConversation.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adminId: activeUser.id }),

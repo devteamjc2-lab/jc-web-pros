@@ -6,7 +6,7 @@ const Users = () => {
  
     const getAllUsers = async () => {
     try {
-        const response = await fetch("https://jc-web-pros.onrender.com//api/users/get-all-users", {
+        const response = await fetch("https://jc-web-pros.onrender.com/api/users/get-all-users", {
         method: "GET",
         headers: {
         "Content-Type": "application/json",

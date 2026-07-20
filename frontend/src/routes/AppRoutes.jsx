@@ -14,8 +14,6 @@ import PublicMiddleware from "../middleware/PublicMiddleware";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://jc-web-pros.onrender.com/";
 
-
-
 const AppRoutes = () => {
   return (
     <Routes>

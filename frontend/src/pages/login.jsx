@@ -50,7 +50,7 @@ const Login = () => {
   setIsSubmitting(true);
 
   try {
-    const response = await fetch("https://jc-web-pros.onrender.com//api/users/login", {
+    const response = await fetch("https://jc-web-pros.onrender.com/api/users/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
