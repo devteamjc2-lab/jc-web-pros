@@ -3,19 +3,63 @@ import { Link } from "react-router-dom";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  
+const navLinks = [
+  { label: "Home", to: "/" },
+  { label: "About", to: "/about" },
+  { label: "Services", href: "#services" },
+  { label: "Portfolio", href: "#portfolio" },
+  { label: "Blog", href: "#blog" },
+  { label: "Contact Us", to: "/contact" },
 
-  const navLinks = [
-    { label: "Home", to: "/" },
-    { label: "About", to: "/about" },
-    { label: "Services", href: "#services" },
-    { label: "Portfolio", href: "#portfolio" },
-    { label: "Blog", href: "#blog" },
-    { label: "Contact Us", to: "/contact" },
-    { label: "Login", to: "/login" },
-     { label: "Chat", to: "/chat" },
+  ...(token
+    ? [{ label: "Chat", to: "/chat" }]
+    : [{ label: "Login", to: "/login" }]),
+];
+{token && (
+  <div style={styles.profileWrapper}>
+    <span
+      style={styles.profileBtn}
+      onClick={() => setProfileOpen(!profileOpen)}
+    >
+      👤 Profile
+    </span>
 
-  ];
+    {profileOpen && (
+      <div style={styles.dropdown}>
 
+        <Link
+          to="/profile"
+          style={styles.dropdownItem}
+          onClick={() => setProfileOpen(false)}
+        >
+          My Profile
+        </Link>
+
+        {user?.role === "admin" && (
+          <Link
+            to="/dashboard"
+            style={styles.dropdownItem}
+            onClick={() => setProfileOpen(false)}
+          >
+            Dashboard
+          </Link>
+        )}
+
+        <button
+          style={styles.logoutBtn}
+          onClick={logout}
+        >
+          Logout
+        </button>
+
+      </div>
+    )}
+  </div>
+)}
   return (
     <header style={styles.header}>
       <div style={styles.container}>
@@ -91,6 +135,46 @@ export default function Header() {
 }
 
 const styles = {
+  profileWrapper: {
+  position: "relative",
+},
+
+profileBtn: {
+  cursor: "pointer",
+  fontWeight: "600",
+  color: "#333",
+},
+
+dropdown: {
+  position: "absolute",
+  top: "40px",
+  right: 0,
+  width: "180px",
+  background: "#fff",
+  borderRadius: "6px",
+  boxShadow: "0 5px 20px rgba(0,0,0,.15)",
+  overflow: "hidden",
+  zIndex: 1000,
+},
+
+dropdownItem: {
+  display: "block",
+  padding: "12px 16px",
+  textDecoration: "none",
+  color: "#333",
+  borderBottom: "1px solid #eee",
+},
+
+logoutBtn: {
+  width: "100%",
+  padding: "12px 16px",
+  border: "none",
+  background: "#fff",
+  cursor: "pointer",
+  textAlign: "left",
+  color: "#d32f2f",
+},
+
   header: {
     position: "sticky",
     top: 0,
