@@ -14,6 +14,12 @@ const users = [
     password: "123456",
     role: "User",
   },
+  {
+    name: "pooja",
+    email: "pooja@gmail.com",
+    password: "123456",
+    role: "User",
+  },
 ];
 
 async function seedUsers() {
