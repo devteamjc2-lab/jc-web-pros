@@ -193,6 +193,8 @@ const navLinks = [
 const styles = {
   profileWrapper: {
   position: "relative",
+  display: "flex",
+  alignItems: "center",
 },
 
 profileBtn: {
