@@ -16,7 +16,9 @@ const navLinks = [
   { label: "Contact Us", to: "/contact" },
 
   ...(token
-    ? [{ label: "Chat", to: "/chat" }]
+    ? [{ label: "Chat", to: "/chat" },
+       { label: "Profile", to: "/profile" },
+    ]
     : [{ label: "Login", to: "/login" }]),
 ];
 {token && (
