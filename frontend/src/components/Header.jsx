@@ -23,53 +23,10 @@ const navLinks = [
 
   ...(token
     ? [{ label: "Chat", to: "/chat" },
-       { label: <i className="fa-solid fa-user"></i>, to: "/profile" },
+      //  { label: <i className="fa-solid fa-user"></i>, to: "/profile" },
     ]
     : [{ label: "Login", to: "/login" }]),
 ];
-// {token && (
-//   <div style={styles.profileWrapper}>
-//     <span
-//       style={styles.profileBtn}
-//       onClick={() => setProfileOpen(!profileOpen)}
-//     >
-//       👤 Profile
-//     </span>
-
-//     {profileOpen && (
-//       <div style={styles.dropdown}>
-
-//         <Link
-//           to="/profile"
-//           style={styles.dropdownItem}
-//           onClick={() => setProfileOpen(false)}
-//         >
-//           My Profile
-//         </Link>
-
-//         {user?.role === "admin" && (
-//           <Link
-//             to="/dashboard"
-//             style={styles.dropdownItem}
-//             onClick={() => setProfileOpen(false)}
-//           >
-//             Dashboard
-//           </Link>
-//         )}
-
-//         <button
-//           style={styles.logoutBtn}
-//           onClick={logout}
-//         >
-//           Logout
-//         </button>
-
-//       </div>
-//     )}
-//   </div>
-// )}
-
-
   return (
     <header style={styles.header}>
       <div style={styles.container}>
