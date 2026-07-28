@@ -154,7 +154,7 @@ const styles = {
 },
 dropdown: {
   position: "absolute",
-  top: "100%",   // icon ke just niche
+  top: "30px",   // icon ke just niche
   right: 0,
   width: "180px",
   background: "#fff",
