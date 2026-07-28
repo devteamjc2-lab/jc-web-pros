@@ -17,7 +17,7 @@ const navLinks = [
 
   ...(token
     ? [{ label: "Chat", to: "/chat" },
-       { label: "Profile", to: "/profile" },
+       { label: <i className="fa-solid fa-user"></i>, to: "/profile" },
     ]
     : [{ label: "Login", to: "/login" }]),
 ];
