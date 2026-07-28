@@ -6,6 +6,12 @@ export default function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+  };
+
   
 const navLinks = [
   { label: "Home", to: "/" },
