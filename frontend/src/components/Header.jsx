@@ -21,18 +21,64 @@ const navLinks = [
     ]
     : [{ label: "Login", to: "/login" }]),
 ];
+// {token && (
+//   <div style={styles.profileWrapper}>
+//     <span
+//       style={styles.profileBtn}
+//       onClick={() => setProfileOpen(!profileOpen)}
+//     >
+//       👤 Profile
+//     </span>
+
+//     {profileOpen && (
+//       <div style={styles.dropdown}>
+
+//         <Link
+//           to="/profile"
+//           style={styles.dropdownItem}
+//           onClick={() => setProfileOpen(false)}
+//         >
+//           My Profile
+//         </Link>
+
+//         {user?.role === "admin" && (
+//           <Link
+//             to="/dashboard"
+//             style={styles.dropdownItem}
+//             onClick={() => setProfileOpen(false)}
+//           >
+//             Dashboard
+//           </Link>
+//         )}
+
+//         <button
+//           style={styles.logoutBtn}
+//           onClick={logout}
+//         >
+//           Logout
+//         </button>
+
+//       </div>
+//     )}
+//   </div>
+// )}
 {token && (
-  <div style={styles.profileWrapper}>
-    <span
-      style={styles.profileBtn}
-      onClick={() => setProfileOpen(!profileOpen)}
-    >
-      👤 Profile
-    </span>
+  <div
+    style={styles.profileWrapper}
+    onMouseEnter={() => setProfileOpen(true)}
+    onMouseLeave={() => setProfileOpen(false)}
+  >
+    <i
+      className="fa-solid fa-circle-user"
+      style={{
+        fontSize: "28px",
+        cursor: "pointer",
+        color: "#333",
+      }}
+    ></i>
 
     {profileOpen && (
       <div style={styles.dropdown}>
-
         <Link
           to="/profile"
           style={styles.dropdownItem}
@@ -57,11 +103,11 @@ const navLinks = [
         >
           Logout
         </button>
-
       </div>
     )}
   </div>
 )}
+
   return (
     <header style={styles.header}>
       <div style={styles.container}>
