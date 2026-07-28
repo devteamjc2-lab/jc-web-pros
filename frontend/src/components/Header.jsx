@@ -149,11 +149,19 @@ const navLinks = [
 
 const styles = {
   profileWrapper: {
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
+    position: "relative",
+  display: "inline-block",
 },
-
+dropdown: {
+  position: "absolute",
+  top: "100%",   // icon ke just niche
+  right: 0,
+  width: "180px",
+  background: "#fff",
+  borderRadius: "6px",
+  boxShadow: "0 5px 20px rgba(0,0,0,.15)",
+  zIndex: 1000,
+},
 profileBtn: {
   cursor: "pointer",
   fontWeight: "600",
