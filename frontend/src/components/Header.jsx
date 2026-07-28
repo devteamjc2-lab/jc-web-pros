@@ -68,51 +68,7 @@ const navLinks = [
 //     )}
 //   </div>
 // )}
-{token && (
-  <div
-    style={styles.profileWrapper}
-    onMouseEnter={() => setProfileOpen(true)}
-    onMouseLeave={() => setProfileOpen(false)}
-  >
-    <i
-      className="fa-solid fa-circle-user"
-      style={{
-        fontSize: "28px",
-        cursor: "pointer",
-        color: "#333",
-      }}
-    ></i>
 
-    {profileOpen && (
-      <div style={styles.dropdown}>
-        <Link
-          to="/profile"
-          style={styles.dropdownItem}
-          onClick={() => setProfileOpen(false)}
-        >
-          My Profile
-        </Link>
-
-        {user?.role === "admin" && (
-          <Link
-            to="/dashboard"
-            style={styles.dropdownItem}
-            onClick={() => setProfileOpen(false)}
-          >
-            Dashboard
-          </Link>
-        )}
-
-        <button
-          style={styles.logoutBtn}
-          onClick={logout}
-        >
-          Logout
-        </button>
-      </div>
-    )}
-  </div>
-)}
 
   return (
     <header style={styles.header}>
@@ -146,6 +102,52 @@ const navLinks = [
               </a>
             );
           })}
+      {token && (
+        <div
+          style={styles.profileWrapper}
+          onMouseEnter={() => setProfileOpen(true)}
+          onMouseLeave={() => setProfileOpen(false)}
+        >
+          <i
+            className="fa-solid fa-circle-user"
+            style={{
+              fontSize: "28px",
+              cursor: "pointer",
+              color: "#333",
+            }}
+          ></i>
+
+          {profileOpen && (
+            <div style={styles.dropdown}>
+              <Link
+                to="/profile"
+                style={styles.dropdownItem}
+                onClick={() => setProfileOpen(false)}
+              >
+                My Profile
+              </Link>
+
+              {user?.role === "admin" && (
+                <Link
+                  to="/dashboard"
+                  style={styles.dropdownItem}
+                  onClick={() => setProfileOpen(false)}
+                >
+                  Dashboard
+                </Link>
+              )}
+
+              <button
+                style={styles.logoutBtn}
+                onClick={logout}
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+        )}
+
           <a href="#contact" style={styles.ctaBtn}>GET A QUOTE</a>
         </nav>
 
