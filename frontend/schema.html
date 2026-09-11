@@ -1,0 +1,411 @@
+{% assign prices = collection.products | map: 'price' %}
+{% assign min_price = prices | sort | first | divided_by: 100.0 | floor %}
+{% assign max_price = prices | sort | last | divided_by: 100.0 | ceil %}
+
+
+<div class="page-width" style="max-width: {{ section.settings.container_width }}px;">
+
+  <!-- ── BREADCRUMB + SORT BAR ── -->
+  <div class="collection-topbar">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="breadcrumb">
+      <a href="/">Home</a>
+      <span class="breadcrumb-sep">/</span>
+      {% if collection.metafields.custom.parent_collection != blank %}
+        <a href="{{ collection.metafields.custom.parent_collection }}">
+          {{ collection.metafields.custom.parent_collection_name }}
+        </a>
+        <span class="breadcrumb-sep">/</span>
+      {% endif %}
+      <span class="breadcrumb-current">{{ collection.title }}</span>
+    </nav>
+
+    <!-- Sort & Order -->
+<div class="sort-order-wrap">
+  <div class="filter-dropdown" id="sort-dropdown">
+    <button type="button" class="filter-dropdown__toggle" aria-expanded="false">
+      <span id="sort-label">Sort By</span><span class="dropdown-chevron">⌄</span>
+    </button>
+
+    <div class="filter-dropdown__menu">
+      <label><input type="radio" name="sort-by" value="asc" checked> ASC</label>
+      <label><input type="radio" name="sort-by" value="desc"> DESC</label>
+    </div>
+  </div>
+
+  <div class="filter-dropdown" id="order-dropdown">
+    <button type="button" class="filter-dropdown__toggle" aria-expanded="false">
+      <span id="order-label">Order By</span><span class="dropdown-chevron">⌄</span>
+    </button>
+
+    <div class="filter-dropdown__menu">
+      <label><input type="radio" name="order-by" value="" checked> None</label>
+      <label><input type="radio" name="order-by" value="id"> ID</label>
+      <label><input type="radio" name="order-by" value="date"> Date</label>
+      <label><input type="radio" name="order-by" value="name"> Name</label>
+      <label><input type="radio" name="order-by" value="title"> Title</label>
+      <label><input type="radio" name="order-by" value="random"> Random</label>
+      <label><input type="radio" name="order-by" value="featured"> Featured</label>
+      <label><input type="radio" name="order-by" value="price"> Product Price</label>
+    </div>
+  </div>
+</div>
+
+  </div>
+
+  <div class="custom-collection">
+
+    <!-- Sidebar -->
+    <aside class="custom-sidebar">
+      <div class="sidebar-box">
+
+        {% if section.settings.show_price_filter %}
+          <h3>{{ section.settings.price_filter_heading }}</h3>
+          <div class="price-filter">
+            <div class="range-slider">
+              <div class="slider-track"></div>
+              <input type="range" id="min-range" min="{{ min_price }}" max="{{ max_price }}" value="{{ min_price }}" step="1">
+              <input type="range" id="max-range" min="{{ min_price }}" max="{{ max_price }}" value="{{ max_price }}" step="1">
+            </div>
+            <div class="price-bottom">
+              <button class="filter-btn" id="apply-filter"
+                style="background: {{ section.settings.filter_btn_color }};">
+                {{ section.settings.filter_btn_text }}
+              </button>
+              <span class="price-text" style="color: {{ section.settings.price_text_color }};">
+                {{ section.settings.price_label }}
+                $<span id="min-price">{{ min_price }}</span>
+                —
+                $<span id="max-price">{{ max_price }}</span>
+              </span>
+            </div>
+          </div>
+          {% if section.settings.show_categories %}<hr>{% endif %}
+        {% endif %}
+
+        {% if section.settings.show_categories %}
+          <h3>{{ section.settings.categories_heading }}</h3>
+          <ul class="category-list">
+            {% for link in linklists[section.settings.menu].links %}
+              <li>
+                <a href="{{ link.url }}" {% if link.active %}class="active"{% endif %}>
+                  {{ link.title }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+      </div>
+    </aside>
+
+    <!-- Products -->
+    <div class="custom-products" id="products-grid"
+      style="grid-template-columns: repeat({{ section.settings.products_per_row }}, 1fr); gap: {{ section.settings.product_gap }}px;">
+
+      {% paginate collection.products by section.settings.products_per_page %}
+        {% for product in collection.products %}
+          <div class="product-card"
+  data-price="{{ product.price | divided_by: 100.0 }}"
+  data-title="{{ product.title | downcase | escape }}"
+  data-name="{{ product.title | downcase | escape }}"
+  data-id="{{ product.id }}"
+  data-date="{{ product.created_at | date: '%s' }}"
+  data-featured="{% if product.featured_image %}1{% else %}0{% endif %}">
+
+  <!-- 1. IMAGE AREA -->
+  <a class="product-card__image-link" href="{{ product.url }}">
+    {% if product.featured_image %}
+      {{ product.featured_image | image_url: width: 600 | image_tag: loading: 'lazy', alt: product.title }}
+    {% else %}
+      {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+    {% endif %}
+  </a>
+
+  <!-- 2. ACTION BUTTONS (ADD TO CART + WISHLIST) -->
+  <div class="product-card__actions">
+    {% if product.available %}
+      <form class="product-card__cart-form" action="{{ routes.cart_add_url }}" method="post">
+        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        <input type="hidden" name="quantity" value="1">
+        <button type="submit" class="product-card__add-button">
+          Add to cart
+        </button>
+      </form>
+    {% else %}
+      <button type="button" class="product-card__add-button disabled" disabled>
+        Sold out
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- 3. PRICE & TITLE INFO -->
+  <div class="product-card__info">
+    <div class="product-card__price">
+      {{ product.price | money }}
+    </div>
+    
+    <h3 class="product-card__title">
+      <a href="{{ product.url }}">{{ product.title }}</a>
+    </h3>
+  </div>
+
+</div>
+        {% endfor %}
+
+        {% if paginate.pages > 1 %}
+          <div class="pagination" style="grid-column: 1 / -1; text-align: center; padding: 30px 0;">
+            {{ paginate | default_pagination }}
+          </div>
+        {% endif %}
+      {% endpaginate %}
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- No Results -->
+<div id="no-results" style="display:none; text-align:center; padding: 40px;">
+  <p style="font-size: 18px; color: #888;">{{ section.settings.no_results_text }}</p>
+</div>
+
+<script>
+  (function () {
+    var root = window.Shopify && Shopify.routes && Shopify.routes.root
+      ? Shopify.routes.root
+      : '/';
+
+    function refreshCartCount(cart) {
+      var selectors = [
+        '[data-cart-count]',
+        '[data-cart-item-count]',
+        '.cart-count',
+        '.cart-count-bubble span',
+        'cart-count'
+      ];
+
+      document.querySelectorAll(selectors.join(',')).forEach(function (element) {
+        element.textContent = cart.item_count;
+      });
+    }
+
+    document.addEventListener('submit', function (event) {
+      var form = event.target;
+
+      if (!form.classList.contains('product-card__cart-form')) return;
+
+      event.preventDefault();
+
+      var button = form.querySelector('.product-card__add-button');
+      if (!button || button.disabled) return;
+
+      var defaultLabel = button.dataset.defaultLabel || button.textContent.trim();
+      button.dataset.defaultLabel = defaultLabel;
+      button.disabled = true;
+      button.textContent = 'Adding...';
+
+      fetch(root + 'cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: new FormData(form)
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            return response.json().then(function (error) {
+              throw new Error(error.description || 'Unable to add this item to cart.');
+            });
+          }
+
+          return response.json();
+        })
+        .then(function () {
+          return fetch(root + 'cart.js', {
+            headers: { 'Accept': 'application/json' }
+          });
+        })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (cart) {
+          refreshCartCount(cart);
+
+          /* Lets the active Shopify theme refresh its cart drawer/count. */
+          document.dispatchEvent(new CustomEvent('cart:updated', {
+            bubbles: true,
+            detail: { cart: cart }
+          }));
+          document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));
+
+          button.classList.add('is-added');
+          button.textContent = 'Added ✓';
+
+          window.setTimeout(function () {
+            button.classList.remove('is-added');
+            button.textContent = defaultLabel;
+            button.disabled = false;
+          }, 1800);
+        })
+        .catch(function (error) {
+          console.error('Add to cart failed:', error);
+          button.textContent = 'Try again';
+          window.setTimeout(function () {
+            button.textContent = defaultLabel;
+            button.disabled = false;
+          }, 1800);
+        });
+    });
+  })();
+</script>
+
+
+{% schema %}
+{
+  "name": "Custom Collection",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "range",
+      "id": "container_width",
+      "label": "Container Max Width (px)",
+      "min": 1000,
+      "max": 1800,
+      "step": 50,
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "products_per_row",
+      "label": "Products Per Row",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products Per Page",
+      "min": 4,
+      "max": 48,
+      "step": 4,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "product_gap",
+      "label": "Product Card Gap (px)",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Breadcrumb"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumb_link_color",
+      "label": "Breadcrumb Link Color",
+      "default": "#F64C03"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumb_current_color",
+      "label": "Breadcrumb Current Color",
+      "default": "#111111"
+    },
+    {
+      "type": "header",
+      "content": "Price Filter"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_price_filter",
+      "label": "Show Price Filter",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "price_filter_heading",
+      "label": "Price Filter Heading",
+      "default": "FILTER BY PRICE"
+    },
+    {
+      "type": "text",
+      "id": "price_label",
+      "label": "Price Label Text",
+      "default": "Price:"
+    },
+    {
+      "type": "color",
+      "id": "filter_btn_color",
+      "label": "Filter Button Color",
+      "default": "#F64C03"
+    },
+    {
+      "type": "text",
+      "id": "filter_btn_text",
+      "label": "Filter Button Text",
+      "default": "Filter"
+    },
+    {
+      "type": "color",
+      "id": "price_text_color",
+      "label": "Price Text Color",
+      "default": "#F64C03"
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Product Price Color",
+      "default": "#F64C03"
+    },
+    {
+      "type": "header",
+      "content": "Categories"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_categories",
+      "label": "Show Categories",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "categories_heading",
+      "label": "Categories Heading",
+      "default": "CATEGORIES"
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Select Menu for Categories",
+      "default": "main-menu"
+    },
+    {
+      "type": "header",
+      "content": "Other"
+    },
+    {
+      "type": "text",
+      "id": "no_results_text",
+      "label": "No Results Message",
+      "default": "No products found in this price range."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Collection"
+    }
+  ]
+}
+{% endschema %}

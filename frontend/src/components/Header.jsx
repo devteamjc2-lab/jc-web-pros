@@ -170,7 +170,7 @@ profileBtn: {
 
 dropdown: {
   position: "absolute",
-  top: "40px",
+  top: "30px",
   right: 0,
   width: "180px",
   background: "#fff",
