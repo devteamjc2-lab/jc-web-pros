@@ -1,6 +1,8 @@
 const getDbPool = require("../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const path = require("path");
 
 const getConversationDetails = async (pool, conversationId) => {
   const [conversationRows] = await pool.execute(
@@ -31,6 +33,14 @@ const isConversationMember = async (pool, conversationId, userId) => {
   const [rows] = await pool.execute(
     "SELECT 1 FROM jc_web_pros_conversation_members WHERE conversation_id = ? AND user_id = ?",
     [conversationId, userId]
+  );
+  return rows.length > 0;
+};
+
+const isAdminUser = async (pool, userId) => {
+  const [rows] = await pool.execute(
+    "SELECT 1 FROM jc_web_pros_users WHERE id = ? AND LOWER(role) = 'admin'",
+    [userId]
   );
   return rows.length > 0;
 };
@@ -286,7 +296,7 @@ const getConversationMessages = async (req, res) => {
     }
 
     const [rows] = await pool.execute(
-      `SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId, m.message, m.created_at AS createdAt, u.name AS senderName
+      `SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId, m.message, m.message_type AS messageType, m.created_at AS createdAt, u.name AS senderName
        FROM jc_web_pros_messages m
        JOIN jc_web_pros_users u ON m.sender_id = u.id
        WHERE m.conversation_id = ?
@@ -610,7 +620,7 @@ const createMessage = async (req, res) => {
     );
 
     const [messageRows] = await pool.execute(
-      `SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId, m.message, m.created_at AS createdAt, u.name AS senderName
+      `SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId, m.message, m.message_type AS messageType, m.created_at AS createdAt, u.name AS senderName
        FROM jc_web_pros_messages m
        JOIN jc_web_pros_users u ON m.sender_id = u.id
        WHERE m.id = ?`,
@@ -630,6 +640,109 @@ const createMessage = async (req, res) => {
   }
 };
 
+const uploadMessage = async (req, res) => {
+  try {
+    const { conversationId, senderId } = req.body;
+    const pool = await getDbPool();
+
+    if (!req.file || !conversationId || !senderId) {
+      return res.status(400).json({ success: false, message: "File, conversation and sender are required" });
+    }
+
+    const [membershipRows] = await pool.execute(
+      "SELECT 1 FROM jc_web_pros_conversation_members WHERE conversation_id = ? AND user_id = ?",
+      [conversationId, senderId]
+    );
+
+    if (!membershipRows.length) {
+      return res.status(403).json({ success: false, message: "You are not a member of this conversation" });
+    }
+
+    const messageType = req.file.mimetype.startsWith("image/") ? "image" : "file";
+    const fileUrl = `/uploads/${req.file.filename}`;
+    const [result] = await pool.execute(
+      "INSERT INTO jc_web_pros_messages (conversation_id, sender_id, message, message_type) VALUES (?, ?, ?, ?)",
+      [conversationId, senderId, fileUrl, messageType]
+    );
+
+    const [messageRows] = await pool.execute(
+      `SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId, m.message, m.message_type AS messageType,
+              m.created_at AS createdAt, u.name AS senderName
+       FROM jc_web_pros_messages m JOIN jc_web_pros_users u ON m.sender_id = u.id WHERE m.id = ?`,
+      [result.insertId]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: { ...messageRows[0], fileName: req.file.originalname, fileType: req.file.mimetype },
+    });
+  } catch (error) {
+    console.error("Upload message error:", error);
+    return res.status(500).json({ success: false, message: "Unable to upload file" });
+  }
+};
+
+const updateMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { adminId, message } = req.body;
+    const pool = await getDbPool();
+
+    if (!(await isAdminUser(pool, adminId))) {
+      return res.status(403).json({ success: false, message: "Only admins can edit messages" });
+    }
+
+    const [rows] = await pool.execute(
+      "SELECT message, message_type AS messageType FROM jc_web_pros_messages WHERE id = ?",
+      [messageId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Message not found" });
+
+    let nextMessage = message?.trim();
+    let nextType = rows[0].messageType;
+    if (req.file) {
+      nextMessage = `/uploads/${req.file.filename}`;
+      nextType = req.file.mimetype.startsWith("image/") ? "image" : "file";
+      if (rows[0].message?.startsWith("/uploads/")) {
+        fs.unlink(path.join(__dirname, "..", rows[0].message), () => {});
+      }
+    }
+    if (!nextMessage) return res.status(400).json({ success: false, message: "Message content is required" });
+
+    await pool.execute(
+      "UPDATE jc_web_pros_messages SET message = ?, message_type = ? WHERE id = ?",
+      [nextMessage, nextType, messageId]
+    );
+    return res.json({ success: true, message: { id: Number(messageId), message: nextMessage, messageType: nextType } });
+  } catch (error) {
+    console.error("Update message error:", error);
+    return res.status(500).json({ success: false, message: "Unable to edit message" });
+  }
+};
+
+const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { adminId } = req.body;
+    const pool = await getDbPool();
+
+    if (!(await isAdminUser(pool, adminId))) {
+      return res.status(403).json({ success: false, message: "Only admins can delete messages" });
+    }
+
+    const [rows] = await pool.execute("SELECT message FROM jc_web_pros_messages WHERE id = ?", [messageId]);
+    if (!rows.length) return res.status(404).json({ success: false, message: "Message not found" });
+    await pool.execute("DELETE FROM jc_web_pros_messages WHERE id = ?", [messageId]);
+    if (rows[0].message?.startsWith("/uploads/")) {
+      fs.unlink(path.join(__dirname, "..", rows[0].message), () => {});
+    }
+    return res.json({ success: true, messageId: Number(messageId) });
+  } catch (error) {
+    console.error("Delete message error:", error);
+    return res.status(500).json({ success: false, message: "Unable to delete message" });
+  }
+};
+
 module.exports = {
   login,
   getAllUsers,
@@ -642,4 +755,7 @@ module.exports = {
   deleteGroupConversation,
   getConversationMessages,
   createMessage,
+  uploadMessage,
+  updateMessage,
+  deleteMessage,
 };

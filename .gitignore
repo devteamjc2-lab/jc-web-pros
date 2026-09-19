@@ -8,6 +8,7 @@ node_modules/
 frontend/dist/
 frontend/build/
 backend/.next/
+backend/uploads/
 
 # Environment files
 .env

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import socket from "../socket";
 import "/src/assets/css/chat.css";
 
+const API_BASE = "https://jc-web-pros.onrender.com";
+
 const Chat = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
@@ -9,6 +11,8 @@ const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [groupName, setGroupName] = useState("");
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
@@ -303,6 +307,75 @@ const Chat = () => {
     }
   };
 
+  const uploadFile = async () => {
+    const activeUser = currentUser || getStoredUser();
+    if (!selectedFile || !selectedConversation?.id || !activeUser?.id) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("conversationId", selectedConversation.id);
+    formData.append("senderId", activeUser.id);
+    setIsUploading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/chats/messages/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Upload failed");
+
+      socket.emit("send_message", {
+        conversationId: selectedConversation.id,
+        senderId: activeUser.id,
+        senderName: activeUser.name,
+        message: data.message.message,
+        messageType: data.message.messageType,
+      });
+      setSelectedFile(null);
+    } catch (error) {
+      setErrors({ apiError: error.message || "Unable to upload file" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const editMessage = async (msg) => {
+    if (!activeUser?.id) return;
+    const nextText = window.prompt("Edit message", msg.message);
+    if (!nextText?.trim()) return;
+    const response = await fetch(`${API_BASE}/api/chats/messages/${msg.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminId: activeUser.id, message: nextText.trim() }),
+    });
+    const data = await response.json();
+    if (data.success) setMessages((prev) => prev.map((item) => (item.id === msg.id ? { ...item, ...data.message } : item)));
+  };
+
+  const replaceAttachment = async (event, msg) => {
+    const file = event.target.files?.[0];
+    if (!file || !activeUser?.id) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("adminId", activeUser.id);
+    const response = await fetch(`${API_BASE}/api/chats/messages/${msg.id}`, { method: "PATCH", body: formData });
+    const data = await response.json();
+    if (data.success) setMessages((prev) => prev.map((item) => (item.id === msg.id ? { ...item, ...data.message } : item)));
+    event.target.value = "";
+  };
+
+  const deleteMessage = async (msg) => {
+    if (!activeUser?.id || !window.confirm("Delete this message?")) return;
+    const response = await fetch(`${API_BASE}/api/chats/messages/${msg.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminId: activeUser.id }),
+    });
+    const data = await response.json();
+    if (data.success) setMessages((prev) => prev.filter((item) => item.id !== msg.id));
+  };
+
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -556,10 +629,33 @@ const Chat = () => {
                 return (
                   <div key={msg.id || index} className={`message-row ${isOutgoing ? "outgoing" : "incoming"}`}>
                     <div className={`message-bubble ${isOutgoing ? "outgoing" : "incoming"}`}>
-                      {msg.message}
+                      {msg.messageType === "image" ? (
+                        <a href={`${API_BASE}${msg.message}`} target="_blank" rel="noreferrer">
+                          <img className="message-image" src={`${API_BASE}${msg.message}`} alt="Shared attachment" />
+                        </a>
+                      ) : msg.messageType === "file" ? (
+                        <a className="message-file" href={`${API_BASE}${msg.message}`} target="_blank" rel="noreferrer">
+                          Open shared file
+                        </a>
+                      ) : (
+                        msg.message
+                      )}
                       <div className="message-meta">
                         {isOutgoing ? "You" : msg.senderName || "Friend"} • {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Now"}
                       </div>
+                      {activeUser?.role?.toLowerCase() === "admin" && msg.id && (
+                        <div className="admin-message-actions">
+                          {msg.messageType === "text" ? (
+                            <button type="button" onClick={() => editMessage(msg)}>Edit</button>
+                          ) : (
+                            <label>
+                              Replace
+                              <input type="file" onChange={(event) => replaceAttachment(event, msg)} />
+                            </label>
+                          )}
+                          <button type="button" onClick={() => deleteMessage(msg)}>Delete</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -568,7 +664,23 @@ const Chat = () => {
           </div>
 
           <div className="chat-input-wrapper">
+            {selectedFile && (
+              <div className="selected-file">
+                <span>{selectedFile.name}</span>
+                <button type="button" onClick={() => setSelectedFile(null)} aria-label="Remove selected file">
+                  ×
+                </button>
+              </div>
+            )}
             <div className="chat-input-inner">
+              <label className="attach-btn" title="Attach a file">
+                📎
+                <input
+                  type="file"
+                  onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+                  disabled={!selectedConversation || isUploading}
+                />
+              </label>
               <input
                 className="chat-input"
                 value={message}
@@ -577,8 +689,12 @@ const Chat = () => {
                 placeholder={selectedConversation ? "Type your message..." : "Select a conversation first"}
                 disabled={!selectedConversation}
               />
-              <button className="send-btn" onClick={sendMessage} disabled={!selectedConversation || isLoading}>
-                Send
+              <button
+                className="send-btn"
+                onClick={selectedFile ? uploadFile : sendMessage}
+                disabled={!selectedConversation || isLoading || isUploading || (!selectedFile && !message.trim())}
+              >
+                {isUploading ? "Uploading..." : selectedFile ? "Upload" : "Send"}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const initDatabase = require("./database/initDatabase");
@@ -11,6 +12,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
@@ -51,7 +53,7 @@ io.on("connection", (socket) => {
 
   socket.on("send_message", (data) => {
     try {
-      const { conversationId, senderId, message, senderName } = data;
+      const { conversationId, senderId, message, senderName, messageType } = data;
       if (!conversationId || !senderId || !message?.trim()) {
         return;
       }
@@ -61,6 +63,7 @@ io.on("connection", (socket) => {
         senderId,
         senderName: senderName || "User",
         message: message.trim(),
+          messageType: messageType || "text",
       });
     } catch (error) {
       console.error("Socket message error:", error);
