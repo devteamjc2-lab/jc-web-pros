@@ -136,6 +136,44 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const createUser = async (req, res) => {
+  try {
+    const { adminId, name, email, password, role = "User" } = req.body;
+    const pool = await getDbPool();
+
+    const [adminRows] = await pool.execute(
+      "SELECT 1 FROM jc_web_pros_users WHERE id = ? AND LOWER(role) = 'admin'",
+      [adminId]
+    );
+    if (!adminRows.length) {
+      return res.status(403).json({ success: false, message: "Only admins can add users" });
+    }
+
+    if (!name?.trim() || !email?.trim() || !password || !["User", "Admin"].includes(role)) {
+      return res.status(400).json({ success: false, message: "Name, email, password and valid role are required" });
+    }
+
+    const [existingRows] = await pool.execute("SELECT id FROM jc_web_pros_users WHERE email = ?", [email.trim()]);
+    if (existingRows.length) {
+      return res.status(409).json({ success: false, message: "Email is already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [result] = await pool.execute(
+      "INSERT INTO jc_web_pros_users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      [name.trim(), email.trim(), hashedPassword, role]
+    );
+
+    return res.status(201).json({
+      success: true,
+      user: { id: result.insertId, name: name.trim(), email: email.trim(), role },
+    });
+  } catch (error) {
+    console.error("Create user error:", error);
+    return res.status(500).json({ success: false, message: "Unable to create user" });
+  }
+};
+
 const createOrGetConversation = async (req, res) => {
   try {
     const { type, name, createdBy, participants = [] } = req.body;
@@ -746,6 +784,7 @@ const deleteMessage = async (req, res) => {
 module.exports = {
   login,
   getAllUsers,
+  createUser,
   createOrGetConversation,
   getUserConversations,
   getConversationById,

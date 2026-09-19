@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 const Users = () => {
     const [users, setUsers] = useState([]);
     const [errors, setErrors] = useState({});
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [form, setForm] = useState({ name: "", email: "", password: "", role: "User" });
  
     const getAllUsers = async () => {
     try {
@@ -38,6 +41,28 @@ const Users = () => {
 const setUsersList = (newUsers) => {
   setUsers(newUsers);
 };
+  const createUser = async (event) => {
+    event.preventDefault();
+    const admin = JSON.parse(localStorage.getItem("user") || "null");
+    setIsSaving(true);
+    setErrors({});
+    try {
+      const response = await fetch("https://jc-web-pros.onrender.com/api/users/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, adminId: admin?.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to add user");
+      setUsers((currentUsers) => [...currentUsers, data.user]);
+      setForm({ name: "", email: "", password: "", role: "User" });
+      setIsModalOpen(false);
+    } catch (error) {
+      setErrors({ apiError: error.message });
+    } finally {
+      setIsSaving(false);
+    }
+  };
   return (
     <main style={styles.page}>
       <section style={styles.header}>
@@ -45,8 +70,27 @@ const setUsersList = (newUsers) => {
           <p style={styles.subtitle}>User Management</p>
           <h1 style={styles.title}>Users</h1>
         </div>
-        <button style={styles.button}>Add User</button>
+        <button style={styles.button} onClick={() => setIsModalOpen(true)}>Add User</button>
       </section>
+      {errors.apiError && <p style={styles.error}>{errors.apiError}</p>}
+      {isModalOpen && (
+        <div style={styles.overlay} onClick={() => setIsModalOpen(false)}>
+          <form style={styles.modal} onSubmit={createUser} onClick={(event) => event.stopPropagation()}>
+            <h2 style={styles.modalTitle}>Add User</h2>
+            <input style={styles.input} placeholder="Name" value={form.name} required onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <input style={styles.input} type="email" placeholder="Email" value={form.email} required onChange={(event) => setForm({ ...form, email: event.target.value })} />
+            <input style={styles.input} type="password" placeholder="Password" value={form.password} required minLength={6} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+            <select style={styles.input} value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
+              <option value="User">User</option>
+              <option value="Admin">Admin</option>
+            </select>
+            <div style={styles.modalActions}>
+              <button type="button" style={styles.cancelButton} onClick={() => setIsModalOpen(false)}>Cancel</button>
+              <button type="submit" style={styles.button} disabled={isSaving}>{isSaving ? "Saving..." : "Create User"}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <section style={styles.card}>
         <table style={styles.table}>
@@ -142,6 +186,46 @@ const styles = {
     color: "#047857",
     fontSize: "12px",
     fontWeight: 700,
+  },
+  error: {
+    color: "#b91c1c",
+    margin: "0 auto 16px",
+    maxWidth: "1200px",
+  },
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    display: "grid",
+    placeItems: "center",
+    padding: "20px",
+    background: "rgba(15, 23, 42, 0.45)",
+    zIndex: 20,
+  },
+  modal: {
+    width: "min(460px, 100%)",
+    display: "grid",
+    gap: "14px",
+    padding: "26px",
+    borderRadius: "16px",
+    background: "#fff",
+    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.2)",
+  },
+  modalTitle: { margin: 0, color: "#111827" },
+  input: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "12px 14px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "8px",
+    fontSize: "14px",
+  },
+  modalActions: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "6px" },
+  cancelButton: {
+    padding: "12px 18px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    background: "#fff",
+    cursor: "pointer",
   },
 };
 
